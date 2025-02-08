@@ -23,64 +23,94 @@ document.addEventListener("DOMContentLoaded", function () {
     });
 });
 
+let highestZ = 1;
 
-let highestZ=1;
+class Paper {
+    constructor() {
+        this.holdingPaper = false;
+        this.prevMouseX = 0;
+        this.prevMouseY = 0;
+        this.mouseX = 0;
+        this.mouseY = 0;
+        this.velocityX = 0;
+        this.velocityY = 0;
+        this.currentPaperX = 0;
+        this.currentPaperY = 0;
+    }
 
-class Paper{
-    holdingpaper=false;
-    prevMouseX=0;
-    prevMouseY=0;
-    mouseX=0;
-    mouseY=0;
-    VelocityX=0;
-    VelocityY=0;
-    currentPaperX=0;
-    currentPaperY=0;
-
-    init(paper){
-        paper.addEventListener('mousedown',(e)=>{
-            this.holdingpaper=true;
+    init(paper) {
+        const startDrag = (e) => {
+            this.holdingPaper = true;
             paper.style.zIndex = highestZ;
-            highestZ+=1;
-            if(e.button===0){
-                this.prevMouseX=this.mouseX;
-                this.prevMouseY=this.mouseY;
-            }
-        })
-        document.addEventListener('mousemove',(e)=>{
-            this.mouseX=e.clientX;
-            this.mouseY=e.clientY;  
-            this.VelocityX=this.mouseX-this.prevMouseX;
-            this.VelocityY=this.mouseY-this.prevMouseY;
-            if(this.holdingpaper){
-                this.currentPaperX+=this.VelocityX;
-                this.currentPaperY+=this.VelocityY;
-                this.prevMouseX=this.mouseX;
-                this.prevMouseY=this.mouseY;
-                paper.style.transform = `translate(${this.currentPaperX}px, ${this.currentPaperY}px)`;
-        }
-        })
-        window.addEventListener('mouseup',(e)=>{
-            console.log('mouse button released ')
-            this.holdingpaper=false;
-        })
+            highestZ += 1;
+
+            let touch = e.touches ? e.touches[0] : e;
+            this.prevMouseX = touch.clientX;
+            this.prevMouseY = touch.clientY;
+
+            e.preventDefault(); // Prevent unintended scrolling
+        };
+
+        const moveDrag = (e) => {
+            if (!this.holdingPaper) return;
+
+            let touch = e.touches ? e.touches[0] : e;
+            this.mouseX = touch.clientX;
+            this.mouseY = touch.clientY;
+
+            this.velocityX = this.mouseX - this.prevMouseX;
+            this.velocityY = this.mouseY - this.prevMouseY;
+
+            this.currentPaperX += this.velocityX;
+            this.currentPaperY += this.velocityY;
+
+            this.prevMouseX = this.mouseX;
+            this.prevMouseY = this.mouseY;
+
+            paper.style.transform = `translate(${this.currentPaperX}px, ${this.currentPaperY}px)`;
+        };
+
+        const endDrag = () => {
+            this.holdingPaper = false;
+        };
+
+        // Mouse events
+        paper.addEventListener("mousedown", startDrag);
+        document.addEventListener("mousemove", moveDrag);
+        window.addEventListener("mouseup", endDrag);
+
+        // Touch events
+        paper.addEventListener("touchstart", startDrag, { passive: false });
+        document.addEventListener("touchmove", moveDrag, { passive: false });
+        window.addEventListener("touchend", endDrag);
     }
 }
-const papers=Array.from(document.querySelectorAll('.paper'))
-papers.forEach(paper =>{
-    const p=new Paper();
+
+// Initialize drag functionality for each paper
+const papers = Array.from(document.querySelectorAll(".paper"));
+papers.forEach((paper) => {
+    const p = new Paper();
     p.init(paper);
-}
-)
-document.querySelectorAll('.paper').forEach((el, index) => {
-    if (index % 2 === 0) { // Every other item
-      const randomAngle = (Math.random() * 10 - 5).toFixed(2); // Random angle between -5 and 5 degrees
-      el.style.transform = `rotateZ(${randomAngle}deg)`;
+});
+
+// Randomize rotation for every other element
+document.querySelectorAll(".paper").forEach((el, index) => {
+    if (index % 2 === 0) {
+        const randomAngle = (Math.random() * 10 - 5).toFixed(2); // Between -5° and 5°
+        el.style.transform += ` rotateZ(${randomAngle}deg)`;
     }
-  });
+});
+
+// Play background music on first click/touch
 document.addEventListener("click", () => {
     const audio = document.getElementById("bg-music");
     if (audio.paused) {
         audio.play();
     }
 });
+document.addEventListener("touchstart", () => {
+    const audio = document.getElementById("bg-music");
+    if (audio.paused) {
+        audio.play();
+    }
+}, { once: true }); // Ensures it plays only on the first touch
